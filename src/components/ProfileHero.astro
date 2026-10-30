@@ -1,0 +1,335 @@
+---
+import SocialLinks from "./SocialLinks.astro";
+
+interface Props {
+  profile: {
+    name: string;
+    bio?: string;
+    role?: string;
+    email: string;
+    github: string;
+    linkedin: string;
+    instagram: string;
+    facebook: string;
+  };
+  greeting: string;
+  fetchPriority?: "high" | "low" | "auto";
+}
+
+const { profile, greeting, fetchPriority } = Astro.props;
+---
+
+<section class="relative overflow-hidden w-full md:w-[80%] mx-auto border-b border-zinc-200">
+  <div aria-hidden="true" class="hero-glow"></div>
+  <div aria-hidden="true" class="hero-globe">
+    <canvas id="hero-globe-canvas"></canvas>
+  </div>
+  <div aria-hidden="true" class="hero-globe-fade"></div>
+  <canvas aria-hidden="true" id="hero-starfield-canvas" class="hero-starfield"></canvas>
+  <div class="relative z-10 px-6 sm:px-8 py-8 sm:py-10 hero-section">
+    <div class="avatar-frame">
+      <img src="https://fahmiad.com/wp-content/uploads/2022/01/foto-profil-wa-sad-boy1.jpg" alt="Dzikri's profile photo" fetchpriority={fetchPriority} />
+    </div>
+    <div class="hero-copy">
+      <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 w-fit justify-self-end">
+        <span class="relative flex h-1.5 w-1.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span></span>
+        <span class="tracking-tight">Available to work</span>
+      </div>
+      <p class="hero-greeting">{greeting}</p>
+      <p class="hero-description text-sm sm:text-base text-zinc-500 max-w-2xl leading-relaxed">
+        {profile.bio}{profile.role && <> &mdash; {profile.role}</>}
+      </p>
+      <SocialLinks email={profile.email} github={profile.github} linkedin={profile.linkedin} instagram={profile.instagram} facebook={profile.facebook} />
+    </div>
+  </div>
+</section>
+
+<script>
+  const canvas = document.getElementById("hero-globe-canvas") as HTMLCanvasElement | null;
+  const wrap = canvas?.parentElement;
+
+  if (canvas && wrap) {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Titik-titik hijau tersebar merata di permukaan bola (fibonacci sphere).
+    // Dipakai bareng oleh jalur WebGL (Three.js) dan jalur fallback Canvas 2D.
+    const COUNT = 1600;
+    const RADIUS = 1.55;
+    const points: Array<[number, number, number]> = [];
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < COUNT; i++) {
+      const y = 1 - (i / (COUNT - 1)) * 2;
+      const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = goldenAngle * i;
+      points.push([Math.cos(theta) * radiusAtY * RADIUS, y * RADIUS, Math.sin(theta) * radiusAtY * RADIUS]);
+    }
+    const highlights = Array.from({ length: 100 }, () => points[Math.floor(Math.random() * COUNT)]);
+
+    // Fallback Canvas 2D: dipakai kalau browser tidak bisa bikin konteks WebGL
+    // (misalnya GPU dimatikan / sandboxed, error "Could not create a WebGL context").
+    // Hasilnya sama: dot globe hijau, agak zoom, muter pelan, cuma butuh Canvas 2D.
+    const runCanvas2D = () => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      let size = wrap.clientWidth || 640;
+      let angle = 0;
+      let running = !reduceMotion;
+      let raf = 0;
+      const tiltX = 0.38;
+      const tiltZ = -0.18;
+
+      const resize = () => {
+        size = wrap.clientWidth || 640;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        canvas.width = size * dpr;
+        canvas.height = size * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      resize();
+      window.addEventListener("resize", resize);
+
+      const draw = () => {
+        ctx.clearRect(0, 0, size, size);
+        const cx = size / 2;
+        const cy = size / 2;
+        const cosY = Math.cos(angle);
+        const sinY = Math.sin(angle);
+        const cosX = Math.cos(tiltX);
+        const sinX = Math.sin(tiltX);
+        const cosZ = Math.cos(tiltZ);
+        const sinZ = Math.sin(tiltZ);
+        const drawPoint = (p: [number, number, number], color: string, baseSize: number) => {
+          // Putar Y, lalu miring X.
+          const x1 = p[0] * cosY + p[2] * sinY;
+          const z1 = -p[0] * sinY + p[2] * cosY;
+          const y1 = p[1] * cosX - z1 * sinX;
+          const z2 = p[1] * sinX + z1 * cosX;
+          // Proyeksi perspektif, kamera di z = 5.0, fov 42deg (sama seperti versi Three.js).
+          // Jarak kamera dijauhkan dari 2.6 -> 5.0 supaya jari-jari globe di layar
+          // (~258px) lebih kecil dari kuadran hero yang kelihatan, jadi lengkung
+          // lingkarannya masuk ke dalam hero, bukan memenuhi kotak penuh titik.
+          const scale = (size / 2 / Math.tan((42 * Math.PI) / 360)) / (5.0 - z2);
+          let sx = cx + x1 * scale;
+          let sy = cy - y1 * scale;
+          // Putar di bidang layar (tilt Z).
+          const dx = sx - cx;
+          const dy = sy - cy;
+          sx = cx + dx * cosZ - dy * sinZ;
+          sy = cy + dx * sinZ + dy * cosZ;
+          const depth = (z2 + RADIUS) / (RADIUS * 2); // 0 = belakang, 1 = depan
+          const radius = Math.max(0.8, Math.min(7, baseSize * scale * 0.5));
+          ctx.beginPath();
+          ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+          ctx.globalAlpha = 0.25 + depth * 0.7;
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        };
+        // Gambar titik belakang dulu supaya titik depan menutupinya.
+        const sorted = [...points].sort((a, b) => {
+          const za = a[1] * Math.sin(tiltX) + (-a[0] * sinY + a[2] * cosY) * Math.cos(tiltX);
+          const zb = b[1] * Math.sin(tiltX) + (-b[0] * sinY + b[2] * cosY) * Math.cos(tiltX);
+          return za - zb;
+        });
+        for (const p of sorted) drawPoint(p, "#22c55e", 0.028);
+        for (const p of highlights) drawPoint(p, "#4ade80", 0.05);
+      };
+
+      const tick = () => {
+        if (!running) return;
+        angle += 0.0022;
+        draw();
+        raf = requestAnimationFrame(tick);
+      };
+      draw();
+      if (running) tick();
+      new IntersectionObserver(([entry]) => {
+        if (reduceMotion) return;
+        if (entry.isIntersecting && !running) {
+          running = true;
+          tick();
+        } else if (!entry.isIntersecting && running) {
+          running = false;
+          cancelAnimationFrame(raf);
+        }
+      }).observe(wrap);
+    };
+
+    // Cek WebGL dulu pakai canvas percobaan, SEBELUM import Three.js.
+    // Kalau tidak bisa, langsung fallback Canvas 2D dan Three.js tidak di-load,
+    // jadi tidak ada lagi error "Could not create a WebGL context" di console.
+    const webglOk = (() => {
+      try {
+        const test = document.createElement("canvas");
+        return !!(test.getContext("webgl") || test.getContext("experimental-webgl"));
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!webglOk) {
+      runCanvas2D();
+    } else {
+      import("three")
+        .then((THREE) => {
+          let renderer: THREE.WebGLRenderer | null = null;
+          try {
+            renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+          } catch {
+            renderer = null;
+          }
+          if (!renderer) {
+            runCanvas2D();
+            return;
+          }
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+          camera.position.set(0, 0, 5.0);
+          const globe = new THREE.Group();
+          globe.rotation.set(0.38, 0, -0.18);
+          scene.add(globe);
+
+          const positions = new Float32Array(COUNT * 3);
+          points.forEach((p, i) => {
+            positions[i * 3] = p[0];
+            positions[i * 3 + 1] = p[1];
+            positions[i * 3 + 2] = p[2];
+          });
+          const geometry = new THREE.BufferGeometry();
+          geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+          globe.add(
+            new THREE.Points(
+              geometry,
+              new THREE.PointsMaterial({ color: 0x22c55e, size: 0.028, sizeAttenuation: true, transparent: true, opacity: 0.95 }),
+            ),
+          );
+          const hlPositions = new Float32Array(highlights.length * 3);
+          highlights.forEach((p, i) => {
+            hlPositions[i * 3] = p[0];
+            hlPositions[i * 3 + 1] = p[1];
+            hlPositions[i * 3 + 2] = p[2];
+          });
+          const hlGeometry = new THREE.BufferGeometry();
+          hlGeometry.setAttribute("position", new THREE.BufferAttribute(hlPositions, 3));
+          globe.add(
+            new THREE.Points(
+              hlGeometry,
+              new THREE.PointsMaterial({ color: 0x4ade80, size: 0.05, sizeAttenuation: true, transparent: true, opacity: 1 }),
+            ),
+          );
+
+          const resize = () => {
+            const s = wrap.clientWidth;
+            if (!s) return;
+            renderer!.setSize(s, s, false);
+            camera.aspect = 1;
+            camera.updateProjectionMatrix();
+          };
+          resize();
+          window.addEventListener("resize", resize);
+
+          let running = !reduceMotion;
+          let raf = 0;
+          const tick = () => {
+            if (!running) return;
+            globe.rotation.y += 0.0022;
+            renderer!.render(scene, camera);
+            raf = requestAnimationFrame(tick);
+          };
+          renderer.render(scene, camera);
+          if (running) tick();
+          new IntersectionObserver(([entry]) => {
+            if (reduceMotion) return;
+            if (entry.isIntersecting && !running) {
+              running = true;
+              tick();
+            } else if (!entry.isIntersecting && running) {
+              running = false;
+              cancelAnimationFrame(raf);
+            }
+          }).observe(wrap);
+        })
+        .catch(() => runCanvas2D());
+    }
+  }
+</script>
+
+<script>
+  // Starfield tipis di seluruh hero, Canvas 2D saja (tidak butuh WebGL).
+  // Sengaja terpisah dari script globe: bintang tetap jalan walau globe
+  // pakai WebGL maupun fallback Canvas 2D.
+  const starCanvas = document.getElementById("hero-starfield-canvas") as HTMLCanvasElement | null;
+  const heroSection = starCanvas?.closest("section");
+
+  if (starCanvas && heroSection) {
+    const ctx = starCanvas.getContext("2d");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (ctx) {
+      type Star = { x: number; y: number; r: number; base: number; phase: number; speed: number; color: string };
+      let stars: Star[] = [];
+      let w = 0;
+      let h = 0;
+      let running = !reduceMotion;
+      let raf = 0;
+
+      const makeStars = () => {
+        const area = w * h;
+        const count = Math.max(50, Math.min(110, Math.round(area / 4500)));
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: 0.5 + Math.random() * 1.1,
+          base: 0.15 + Math.random() * 0.4,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.0004 + Math.random() * 0.0008,
+          color: Math.random() < 0.25 ? "#4ade80" : "#e2e8f0",
+        }));
+      };
+
+      const resize = () => {
+        w = heroSection.clientWidth || 800;
+        h = heroSection.clientHeight || 240;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        starCanvas.width = w * dpr;
+        starCanvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        makeStars();
+      };
+      resize();
+      window.addEventListener("resize", resize);
+
+      const draw = (now: number) => {
+        ctx.clearRect(0, 0, w, h);
+        for (const s of stars) {
+          const twinkle = reduceMotion ? 1 : 0.6 + 0.4 * Math.sin(now * s.speed + s.phase);
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.globalAlpha = Math.max(0.05, s.base * twinkle);
+          ctx.fillStyle = s.color;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      };
+
+      const tick = (now: number) => {
+        if (!running) return;
+        draw(now);
+        raf = requestAnimationFrame(tick);
+      };
+      draw(0);
+      if (running) raf = requestAnimationFrame(tick);
+      new IntersectionObserver(([entry]) => {
+        if (reduceMotion) return;
+        if (entry.isIntersecting && !running) {
+          running = true;
+          raf = requestAnimationFrame(tick);
+        } else if (!entry.isIntersecting && running) {
+          running = false;
+          cancelAnimationFrame(raf);
+        }
+      }).observe(heroSection);
+    }
+  }
+</script>

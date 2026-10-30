@@ -1,0 +1,68 @@
+---
+interface Props { page: string; profile: { email: string; location: string }; }
+const { page, profile } = Astro.props;
+---
+<section class={`${page} relative border-b border-zinc-200 overflow-hidden`}>
+  <div aria-hidden="true" class="talk-glow"></div>
+  <canvas aria-hidden="true" id="talk-starfield-canvas" class="talk-starfield"></canvas>
+  <div class="relative z-10 px-6 sm:px-8 py-14 sm:py-20 let-talk-section">
+    <div class="let-talk-heading">
+      <p class="let-talk-word">Let's</p>
+      <p class="let-talk-word let-talk-outline">Talk</p>
+      <p class="let-talk-description">Got a project in mind? Let's create something extraordinary together.</p>
+    </div>
+    <div class="let-talk-details">
+      <a href={profile.email} class="let-talk-detail"><span class="let-talk-label">Email</span><span>{profile.email.replace("mailto:", "")}</span></a>
+      <div class="let-talk-detail"><span class="let-talk-label">Location</span><span>{profile.location}</span></div>
+      <div class="let-talk-detail"><span class="let-talk-label">Availability</span><span class="inline-flex items-center gap-2"><span class="availability-dot"></span>Open to work</span></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const starCanvas = document.getElementById("talk-starfield-canvas") as HTMLCanvasElement | null;
+  const talkSection = starCanvas?.closest("section");
+  if (starCanvas && talkSection) {
+    const ctx = starCanvas.getContext("2d");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (ctx) {
+      type Star = { x: number; y: number; r: number; base: number; phase: number; speed: number; color: string };
+      let stars: Star[] = [];
+      let w = 0; let h = 0; let running = !reduceMotion; let raf = 0;
+      const makeStars = () => {
+        const area = w * h;
+        const count = Math.max(30, Math.min(80, Math.round(area / 6500)));
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * w, y: Math.random() * h, r: 0.5 + Math.random() * 0.8,
+          base: 0.08 + Math.random() * 0.22, phase: Math.random() * Math.PI * 2,
+          speed: 0.0003 + Math.random() * 0.0006, color: Math.random() < 0.25 ? "#4ade80" : "#e2e8f0",
+        }));
+      };
+      const resize = () => {
+        w = talkSection.clientWidth || 800; h = talkSection.clientHeight || 300;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        starCanvas.width = w * dpr; starCanvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); makeStars();
+      };
+      resize();
+      window.addEventListener("resize", resize);
+      const draw = (now: number) => {
+        ctx.clearRect(0, 0, w, h);
+        for (const s of stars) {
+          const twinkle = reduceMotion ? 1 : 0.6 + 0.4 * Math.sin(now * s.speed + s.phase);
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.globalAlpha = Math.max(0.03, s.base * twinkle); ctx.fillStyle = s.color; ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      };
+      const tick = (now: number) => { if (!running) return; draw(now); raf = requestAnimationFrame(tick); };
+      draw(0);
+      if (running) raf = requestAnimationFrame(tick);
+      new IntersectionObserver(([entry]) => {
+        if (reduceMotion) return;
+        if (entry.isIntersecting && !running) { running = true; raf = requestAnimationFrame(tick); }
+        else if (!entry.isIntersecting && running) { running = false; cancelAnimationFrame(raf); }
+      }).observe(talkSection);
+    }
+  }
+</script>

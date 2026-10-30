@@ -1,0 +1,7 @@
+---
+interface Props { page: string; education: Array<{ period: string; major: string; institution: string; logo: string }>; }
+const { page, education } = Astro.props;
+---
+<section id="education" class={`${page} border-b border-zinc-200`}>
+  <div class="px-6 sm:px-8 py-8 sm:py-10"><div class="experience-header"><h2 class="text-lg sm:text-2xl font-semibold tracking-tight text-zinc-950">Education</h2><p class="text-zinc-500 text-xs sm:text-sm">Formal educational background.</p></div><div class="experience-list">{education.map((item) => (<article class="experience-entry flex items-start gap-4 sm:gap-5"><div class="shrink-0 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center"><img src={item.logo} alt={`${item.institution} logo`} loading="lazy" class="w-full h-full object-contain" /></div><div class="flex-1 min-w-0"><div class="experience-topline"><h3>{item.institution}</h3><strong>{item.period}</strong></div><div class="experience-role">{item.major}</div></div></article>))}</div></div>
+</section>

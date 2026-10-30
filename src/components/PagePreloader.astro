@@ -1,0 +1,47 @@
+<div id="page-preloader" class="page-preloader" aria-label="Loading page" role="status">
+  <div class="page-preloader-inner">
+    <span class="page-preloader-mark">dev<span>.</span></span>
+    <div class="page-preloader-meta">
+      <span>Portfolio</span>
+      <span class="page-preloader-progress">0%</span>
+    </div>
+    <div class="page-preloader-line" aria-hidden="true">
+      <span></span>
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    const preloader = document.getElementById("page-preloader");
+    const progressLine = preloader?.querySelector(".page-preloader-line span");
+    const progressLabel = preloader?.querySelector(".page-preloader-progress");
+
+    if (!preloader || preloader.dataset.initialized === "true") return;
+    preloader.dataset.initialized = "true";
+
+    let progress = 0;
+    const updateProgress = () => {
+      progress = Math.min(progress + (progress < 70 ? 9 : 3), 96);
+      if (progressLine) progressLine.style.transform = `scaleX(${progress / 100})`;
+      if (progressLabel) progressLabel.textContent = `${progress}%`;
+    };
+
+    const interval = window.setInterval(updateProgress, 90);
+    const finish = () => {
+      window.clearInterval(interval);
+      if (progressLine) progressLine.style.transform = "scaleX(1)";
+      if (progressLabel) progressLabel.textContent = "100%";
+      window.setTimeout(() => {
+        preloader.classList.add("is-complete");
+        window.setTimeout(() => preloader.remove(), 650);
+      }, 120);
+    };
+
+    if (document.readyState === "complete") {
+      finish();
+    } else {
+      window.addEventListener("load", finish, { once: true });
+    }
+  })();
+</script>

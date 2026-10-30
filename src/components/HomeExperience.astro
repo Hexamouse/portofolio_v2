@@ -1,0 +1,21 @@
+---
+interface Props {
+  page: string;
+  experiences: Array<{ company: string; role: string; period: string; technologies: string[]; highlights: string[] }>;
+}
+const { page, experiences } = Astro.props;
+---
+<section id="experience" class={`${page} border-b border-zinc-200`}>
+  <div class="px-6 sm:px-8 py-8 sm:py-10">
+    <div class="experience-header"><h2 class="text-lg sm:text-2xl font-semibold tracking-tight text-zinc-950">Work Experiences</h2><p class="text-zinc-500 text-xs sm:text-sm">A timeline of my professional experience.</p></div>
+    <div class="experience-list">
+      {experiences.map((experience) => (
+        <article class="experience-entry">
+          <div class="experience-topline"><h3>{experience.company}</h3><strong>{experience.period}</strong></div>
+          <div class="experience-role">{experience.role}</div>
+          <div class="experience-content"><h4>Responsibilities</h4><ul>{experience.highlights.map((highlight) => <li>{highlight}</li>)}</ul><h4>Technologies used</h4><div class="experience-technologies">{experience.technologies.map((technology) => <span>{technology}</span>)}</div></div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

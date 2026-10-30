@@ -1,0 +1,161 @@
+---
+import { Moon, Sun } from "@lucide/astro";
+
+interface Props {
+  container?: string;
+  activeNav?: string;
+}
+
+const {
+  container = "w-full md:w-[80%] mx-auto px-4 sm:px-6 md:px-8",
+  activeNav = "",
+} = Astro.props;
+---
+
+<div id="scroll-progress-line" class="scroll-progress-line" aria-hidden="true"></div>
+
+<header class="sticky top-0 z-50 backdrop-blur-md bg-white/80">
+  <div
+    class={`${container} h-16 border-b border-zinc-200/80 grid grid-cols-[1fr_auto_1fr] items-center`}
+  >
+    <a
+      href="/"
+      class="font-semibold text-lg tracking-tight text-zinc-950 hover:text-zinc-600 transition-colors justify-self-start"
+    >
+      dev<span class="text-zinc-400">.</span>
+    </a>
+
+    <nav
+      class="justify-self-center flex gap-2 sm:gap-6 text-[11px] sm:text-sm font-medium whitespace-nowrap overflow-x-auto"
+    >
+      <a
+        href="/#projects"
+        class={`nav-link ${activeNav === "projects" ? "font-semibold text-zinc-950" : ""}`}
+      >
+        Projects
+      </a>
+      <a
+        href="/#blog"
+        class={`nav-link ${activeNav === "blog" ? "font-semibold text-zinc-950" : ""}`}
+      >
+        Blog
+      </a>
+      <a
+        href="/about"
+        class={`nav-link ${activeNav === "about" ? "font-semibold text-zinc-950" : ""}`}
+      >
+        About
+      </a>
+    </nav>
+
+    <button
+      id="theme-toggle"
+      type="button"
+      class="theme-toggle justify-self-end"
+      aria-label="Ubah tema"
+      aria-pressed="true"
+    >
+      <Moon
+        class="theme-icon theme-icon-dark"
+        size={16}
+        stroke-width={1.75}
+        aria-hidden="true"
+      />
+      <Sun
+        class="theme-icon theme-icon-light"
+        size={16}
+        stroke-width={1.75}
+        aria-hidden="true"
+      />
+      <span class="sr-only">Ubah tema</span>
+    </button>
+  </div>
+</header>
+
+<script is:inline>
+  const setupThemeToggle = () => {
+    const themeToggle = document.getElementById("theme-toggle");
+    if (!themeToggle || themeToggle.dataset.initialized === "true") return;
+    themeToggle.dataset.initialized = "true";
+
+    const updateThemeToggle = () => {
+      const isDark = document.documentElement.dataset.theme === "dark";
+      themeToggle.setAttribute("aria-pressed", String(isDark));
+      themeToggle.setAttribute(
+        "aria-label",
+        isDark ? "Gunakan tema terang" : "Gunakan tema gelap",
+      );
+    };
+
+    themeToggle.addEventListener("click", () => {
+      const nextTheme =
+        document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = nextTheme;
+      localStorage.setItem("theme", nextTheme);
+      updateThemeToggle();
+    });
+
+    updateThemeToggle();
+  };
+
+  setupThemeToggle();
+  document.addEventListener("astro:page-load", setupThemeToggle);
+</script>
+
+<script>
+  import Lenis from "lenis";
+
+  declare global {
+    interface Window {
+      lenisInstance?: Lenis;
+    }
+  }
+
+  const initLenisAndProgress = () => {
+    // Destroy previous instance if exists (e.g., page navigation)
+    if (window.lenisInstance) {
+      window.lenisInstance.destroy();
+    }
+
+    const lenis = new Lenis({
+      duration: 1.5,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      wheelMultiplier: 1.15,
+      touchMultiplier: 1.5,
+    });
+    window.lenisInstance = lenis;
+
+    const progressBar = document.getElementById("scroll-progress-line");
+
+    const updateProgress = () => {
+      if (!progressBar) return;
+      const scroll = lenis.scroll;
+      const limit = lenis.limit || (document.documentElement.scrollHeight - window.innerHeight);
+      const progress = limit > 0 ? (scroll / limit) * 100 : 0;
+      progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
+    };
+
+    lenis.on("scroll", updateProgress);
+
+    // Continuous requestAnimationFrame loop
+    function raf(time: number) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+
+    // Initial update
+    updateProgress();
+
+    window.addEventListener("resize", () => {
+      lenis.resize();
+      updateProgress();
+    }, { passive: true });
+  };
+
+  initLenisAndProgress();
+  document.addEventListener("astro:page-load", initLenisAndProgress);
+</script>

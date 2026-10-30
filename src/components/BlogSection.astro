@@ -1,0 +1,46 @@
+---
+import { getCollection } from "astro:content";
+import BlogCard from "./BlogCard.astro";
+
+interface Props {
+  page: string;
+}
+
+// Latest 3 published posts, newest first. Drafts are hidden.
+const posts = (await getCollection("blog", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
+
+const { page } = Astro.props;
+---
+
+{
+  posts.length > 0 && (
+    <section id="blog" class={`${page} border-b border-zinc-200`}>
+      <div class="px-6 sm:px-8 py-8 sm:py-10 space-y-8">
+        <div class="flex items-end justify-between gap-4">
+          <div class="space-y-1.5">
+            <h2 class="text-lg sm:text-2xl font-semibold tracking-tight text-zinc-950">
+              Latest Blog
+            </h2>
+            <p class="text-zinc-500 text-xs sm:text-sm">
+              Notes, tutorials, and things I learn along the way.
+            </p>
+          </div>
+          <a
+            href="/blog"
+            class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-zinc-600 hover:text-zinc-950 transition-colors shrink-0 pb-1"
+          >
+            <span>See all posts</span>
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {posts.map((post) => (
+            <BlogCard post={post} />
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}

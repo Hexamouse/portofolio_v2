@@ -1,0 +1,5 @@
+---
+interface Props { page: string; content: string[]; }
+const { page, content } = Astro.props;
+---
+<section class={`${page} border-b border-zinc-200`}><div class="px-6 sm:px-8 py-8 sm:py-10 space-y-6"><div class="space-y-1.5"><h2 class="text-lg sm:text-2xl font-semibold tracking-tight text-zinc-950">Biography & Background</h2><p class="text-zinc-500 text-xs sm:text-sm">More about my journey, technical background, and mindset.</p></div><div class="space-y-4 text-sm sm:text-base text-zinc-600 leading-relaxed max-w-3xl">{content.map((paragraph) => <p>{paragraph}</p>)}</div></div></section>

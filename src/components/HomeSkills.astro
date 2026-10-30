@@ -1,0 +1,60 @@
+---
+interface Props { page: string; techRow1: Array<any>; techRow2: Array<any>; }
+const { page, techRow1, techRow2 } = Astro.props;
+---
+<section id="skills" class={`${page} relative border-b border-zinc-200 overflow-hidden`}>
+  <div aria-hidden="true" class="skills-glow"></div>
+  <canvas aria-hidden="true" id="skills-starfield-canvas" class="skills-starfield"></canvas>
+  <div class="relative z-10 px-6 sm:px-8 py-8 sm:py-10 space-y-6"><div class="space-y-1.5"><h2 class="text-lg sm:text-2xl font-semibold tracking-tight text-zinc-950">Skills & Technologies</h2><p class="text-zinc-500 text-xs sm:text-sm">Tools and languages I use every day.</p></div><div class="tech-marquee-wrapper" aria-label="Skills and technologies marquee">
+    <div class="tech-marquee-track"><div class="tech-marquee-group">{techRow1.map((item) => <a href={item.link} target="_blank" rel="noreferrer" class="tech-card" title={item.name}><img src={item.icon} alt={`${item.name} logo`} loading="lazy" width="20" height="20" class={`tech-card-icon ${item.invertDark ? "tech-icon-invert" : ""}`} /><span>{item.name}</span></a>)}</div><div class="tech-marquee-group" aria-hidden="true">{techRow1.map((item) => <a href={item.link} target="_blank" rel="noreferrer" tabindex="-1" class="tech-card" title={item.name}><img src={item.icon} alt="" loading="lazy" width="20" height="20" class={`tech-card-icon ${item.invertDark ? "tech-icon-invert" : ""}`} /><span>{item.name}</span></a>)}</div></div>
+    <div class="tech-marquee-track-reverse"><div class="tech-marquee-group">{techRow2.map((item) => <a href={item.link} target="_blank" rel="noreferrer" class="tech-card" title={item.name}><img src={item.icon} alt={`${item.name} logo`} loading="lazy" width="20" height="20" class={`tech-card-icon ${item.invertDark ? "tech-icon-invert" : ""}`} /><span>{item.name}</span></a>)}</div><div class="tech-marquee-group" aria-hidden="true">{techRow2.map((item) => <a href={item.link} target="_blank" rel="noreferrer" tabindex="-1" class="tech-card" title={item.name}><img src={item.icon} alt="" loading="lazy" width="20" height="20" class={`tech-card-icon ${item.invertDark ? "tech-icon-invert" : ""}`} /><span>{item.name}</span></a>)}</div></div>
+  </div></div>
+</section>
+
+<script>
+  const starCanvas = document.getElementById("skills-starfield-canvas") as HTMLCanvasElement | null;
+  const skillsSection = starCanvas?.closest("section");
+  if (starCanvas && skillsSection) {
+    const ctx = starCanvas.getContext("2d");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (ctx) {
+      type Star = { x: number; y: number; r: number; base: number; phase: number; speed: number; color: string };
+      let stars: Star[] = [];
+      let w = 0; let h = 0; let running = !reduceMotion; let raf = 0;
+      const makeStars = () => {
+        const area = w * h;
+        const count = Math.max(50, Math.min(110, Math.round(area / 4500)));
+        stars = Array.from({ length: count }, () => ({
+          x: Math.random() * w, y: Math.random() * h, r: 0.5 + Math.random() * 1.1,
+          base: 0.15 + Math.random() * 0.4, phase: Math.random() * Math.PI * 2,
+          speed: 0.0004 + Math.random() * 0.0008, color: Math.random() < 0.25 ? "#4ade80" : "#e2e8f0",
+        }));
+      };
+      const resize = () => {
+        w = skillsSection.clientWidth || 800; h = skillsSection.clientHeight || 240;
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        starCanvas.width = w * dpr; starCanvas.height = h * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0); makeStars();
+      };
+      resize();
+      window.addEventListener("resize", resize);
+      const draw = (now: number) => {
+        ctx.clearRect(0, 0, w, h);
+        for (const s of stars) {
+          const twinkle = reduceMotion ? 1 : 0.6 + 0.4 * Math.sin(now * s.speed + s.phase);
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.globalAlpha = Math.max(0.05, s.base * twinkle); ctx.fillStyle = s.color; ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      };
+      const tick = (now: number) => { if (!running) return; draw(now); raf = requestAnimationFrame(tick); };
+      draw(0);
+      if (running) raf = requestAnimationFrame(tick);
+      new IntersectionObserver(([entry]) => {
+        if (reduceMotion) return;
+        if (entry.isIntersecting && !running) { running = true; raf = requestAnimationFrame(tick); }
+        else if (!entry.isIntersecting && running) { running = false; cancelAnimationFrame(raf); }
+      }).observe(skillsSection);
+    }
+  }
+</script>

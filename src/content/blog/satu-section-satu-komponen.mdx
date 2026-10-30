@@ -1,0 +1,23 @@
+---
+title: "Satu Section, Satu Komponen"
+description: "Post contoh ketiga. Kenapa setiap section di portfolio ini dipisah menjadi komponennya sendiri, dan bagaimana pola itu dipakai juga untuk section Blog."
+pubDate: 2026-10-29
+banner: "/blog/components.svg"
+bannerAlt: "Banner bertuliskan Satu Section, Satu Komponen"
+tags: ["Astro", "Komponen"]
+---
+
+Di portfolio ini, setiap section adalah satu file komponen di `src/components/` — misalnya `HomeProjects.astro` untuk project dan `HomeSkills.astro` untuk skills.
+
+Section Blog mengikuti pola yang sama:
+
+- `BlogCard.astro` — satu kartu blog: banner, tanggal, judul, deskripsi, tags, dan tombol baca.
+- `BlogSection.astro` — section di homepage yang mengambil 3 post terbaru dari collection `blog`, lalu menampilkan 3 `BlogCard`.
+- `src/pages/blog/index.astro` — halaman daftar semua post.
+- `src/pages/blog/[slug].astro` — halaman detail satu post, yang merender isi MDX-nya.
+
+## Kenapa dipisah begitu?
+
+Supaya kalau suatu saat kamu mau mengubah tampilan kartu, kamu cukup mengubah satu file (`BlogCard.astro`), dan semua tempat yang memakai kartu itu ikut berubah — homepage dan halaman daftar blog.
+
+Dan kalau kamu mau menambah post baru, kamu tidak perlu menyentuh komponen sama sekali. Cukup tambah satu file `.mdx` baru.

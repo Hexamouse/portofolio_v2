@@ -1,0 +1,26 @@
+---
+title: "Astro + MDX: Markdown yang Bisa Pakai Komponen"
+description: "Post contoh kedua. Penjelasan singkat soal MDX: Markdown biasa, tapi bisa menyisipkan komponen Astro atau React di tengah tulisan."
+pubDate: 2026-10-28
+banner: "/blog/mdx-astro.svg"
+bannerAlt: "Banner bertuliskan Astro + MDX"
+tags: ["Astro", "MDX"]
+---
+
+MDX itu Markdown dengan superpower. Kamu menulis seperti biasa:
+
+- Judul pakai `#`
+- Tebal pakai `**teks**`
+- List pakai `-`
+- Kode pakai blok ``` seperti biasa
+
+Tapi di tengah tulisan, kamu juga bisa menyisipkan komponen. Misalnya nanti kamu bisa bikin komponen `Callout.astro` lalu memakainya di dalam file `.mdx` seperti ini (cukup import di atas, lalu pakai tag-nya di bawah).
+
+## Alurnya di project ini
+
+1. Buat file baru di `src/content/blog/nama-post.mdx`.
+2. Isi bagian atas (frontmatter): judul, deskripsi, tanggal, banner, dan tags.
+3. Tulis isi di bawah frontmatter.
+4. Simpan, jalankan dev server, dan post itu otomatis muncul di homepage (3 terbaru) dan di halaman `/blog`.
+
+Tidak perlu mendaftarkan post secara manual di tempat lain. Nama file itulah yang jadi URL-nya.
